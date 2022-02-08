@@ -11,11 +11,10 @@ class Tile:
     """
     all = []   # Acces to all instance of the class
 
-    def __init__(self, master, text: str, id: int):
+    def __init__(self, master, font, text: str, id: int):
         # master: the Grid instance of the tile.
         # text: the text displayed on the tile
         # the id of the tile. Each tile of the project must have is own id
-        self.master = master
         self.text = text
 
         # Check if the id is not already used
@@ -25,33 +24,16 @@ class Tile:
                 return(None)
         self.id = id
 
-        # The tile with 0 id has specific text and color.
-        if self.id == 0:
-            self.element = Button(
-                master.frame,
-                text=text,
-                height=TILE_HEIGHT, width=TILE_WIDTH,
-                background=FRAME_TILE_BG_COLOR,
-                command=lambda: [self.action(self.id)]
-            )
-        else:
-            self.element = Button(
-                master,
-                text=text,
-                height=TILE_HEIGHT, width=TILE_WIDTH,
-                background=TILE_BG_COLOR,
-                command=lambda: [self.action(self.id)]
-            )
+        self.element = Button(
+            master.frame,
+            text=text,
+            height=TILE_HEIGHT, width=TILE_WIDTH,
+            background=TILE_BG_COLOR, font=font,
+            command=lambda: [master.move(self.id)]
+        )
 
         # Add this tile to the register
         Tile.all.append(self)
-
-    def action(self, id):
-        # Action depend of the Ideap
-        if id == 0:
-            pass
-        else:
-            self.master.move(id)    # Call the 'move' action of the master Grid
 
     def build(self, x, y):
         # build the tile on the gui
@@ -71,22 +53,30 @@ class Grid:
     """
     all = []   # Acces to all instance of the class
 
-    def __init__(self, master, name: str, size: int):
-        self.name = name
-        self.size = size
+    def __init__(self, appId, size: int, objectif=[]):
+        # master: the Tk() father instance of the grid.
+        # text: the text displayed on the tile
+        # the id of the tile. Each tile of the project must have is own id
+        self.appId = appId
+        self.font = tkinter.font.Font(
+            family='Helvetica',
+            size=20,
+            weight='bold',
+            slant='italic'
+        )
         self.frame = Frame(
-            master,
-            background=FRAME_MENU_BG_COLOR,
+            App.register[self.appId].root,
+            background=FRAME_TILE_BG_COLOR,
             relief='ridge', borderwidth=FRAME_BORDER_WIDTH
         )
+
+        self.size = size
+
         self.listOfTile = []
-        count = 0
         for i in range(self.size*self.size):
-            if i == 0:
-                tile = Tile(self, " ", i)
-            else:
-                tile = Tile(self, str(i), i)
+            tile = Tile(self, self.font, str(i+1), i+1)
             self.listOfTile.append(tile)
+
         self.grid = []
         count = 1
         for i in range(self.size):
@@ -123,60 +113,159 @@ class Grid:
         else:
             return(False)
 
-    def find_position_from_id(self, id):
+    def find_position_from_id(self, id: int):
         for i in range(self.size):
             for j in range(self.size):
                 if self.grid[i][j] == id:
                     return([i, j])
         return(None)
 
-    def find_tile_from_id(self, id):
+    def find_tile_from_id(self, id: int):
         for i in range(len(self.listOfTile)):
             if self.listOfTile[i].id == id:
                 return(i)
         return(None)
 
-    def remove_one_tile(self, id):
+    def remove_one_tile(self, id: int):
         num = self.find_tile_from_id(id)
-        self.listOfTile[num].remove()
+        if num is not None:
+            self.listOfTile[num].remove()
 
-    def build_one_tile(self, id, pos):
+    def build_one_tile(self, id: int, pos):
         pos = self.find_position_from_id(id)
         num = self.find_tile_from_id(id)
-        self.listOfTile[num].build(pos[0], pos[1])
+        if num is not None:
+            self.listOfTile[num].build(pos[0], pos[1])
 
     def switch_two_tile(self, posA, posB):
         stock = self.grid[posA[0]][posA[1]]
         self.grid[posA[0]][posA[1]] = self.grid[posB[0]][posB[1]]
         self.grid[posB[0]][posB[1]] = stock
 
-    def move(self, id):
-        zeroTilePosition = self.find_position_from_id(0)
+    def move(self, id: int):
+        zeroPosition = self.find_position_from_id(0)
         tilePosition = self.find_position_from_id(id)
-        if Grid.are_next(tilePosition, zeroTilePosition):
+        if Grid.are_next(tilePosition, zeroPosition):
             self.remove_one_tile(id)
-            self.remove_one_tile(0)
-            self.switch_two_tile(tilePosition, zeroTilePosition)
+            self.switch_two_tile(tilePosition, zeroPosition)
             self.build_one_tile(id, self.find_position_from_id(id))
-            self.build_one_tile(0, self.find_position_from_id(0))
+
+        if self.grid == [[1, 2, 3], [4, 5, 6], [7, 8, 0]]:
+            App.register[self.appId].win()
+
+    def update_grid(self):
+        print(self.grid)
+        for row in self.grid:
+            for id in row:
+                self.remove_one_tile(id)
+        for i in range(self.size):
+            for j in range(self.size):
+                self.build_one_tile(
+                    self.grid[i][j],
+                    [i, j]
+                )
 
     def build(self):
         self.frame.pack(side='top', fill='both')
         for i in range(self.size):
             for j in range(self.size):
-                self.listOfTile[
-                    self.find_tile_from_id(self.grid[i][j])
-                ].build(i, j)
+                if not (i == (self.size - 1) and j == (self.size - 1)):
+                    self.listOfTile[
+                        self.find_tile_from_id(self.grid[i][j])
+                    ].build(i, j)
+
+
+class Menu:
+
+    def __init__(self, appId: int):
+        self.appId = appId
+        self.font = tkinter.font.Font(
+            family='Helvetica',
+            size=12,
+            weight='bold',
+            slant='italic'
+        )
+        self.frame = Frame(
+            App.register[self.appId].root,
+            background=FRAME_MENU_BG_COLOR,
+            relief='ridge', borderwidth=FRAME_BORDER_WIDTH
+        )
+        self.dictButton = {
+            'Random': Button(
+                self.frame, text='Random', font=self.font,
+                command=lambda: [App.register[self.appId].random_grid(3)]
+            ),
+            'Edit': Button(
+                self.frame, text='Edit', font=self.font,
+                # command=lambda: [new_grid()]
+            ),
+            'Default': Button(
+                self.frame, text='Default', font=self.font,
+                command=lambda: [App.register[self.appId].default_grid(3)]
+            )
+        }
+        self.dictLabel = {
+            'Win': Label(
+                self.frame, text="Congratulation: You win !", font=self.font
+            )
+        }
+
+    def display_label(self, label: str, unPack=False):
+        print(label)
+        if unPack:
+            self.dictLabel[label].pack_forget()
+        else:
+            self.dictLabel[label].pack(side='right')
+
+    def build(self):
+        self.frame.pack(side='top', fill='both')
+        for button in self.dictButton.values():
+            button.pack(side='left')
 
 
 class App:
+    register = []
 
     def __init__(self):
         self.name = 'Lapin Taquin'
+        self.appId = len(App.register)
+        App.register.append(self)
+        print(App.register[0])
+        print(f"App Id: {self.appId}")
         self.root = Tk()
-        self.board = Grid(self.root, "Board", 3)
+        self.board = Grid(self.appId, 3)
+        self.menu = Menu(self.appId)
+
+    @staticmethod
+    def generate_grid(size):
+        pool = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        newGrid = []
+
+        for row in range(size):
+            line = []
+            for j in range(size):
+                n = choice(pool)
+                line.append(n)
+                pool.remove(n)
+            newGrid.append(line)
+
+        return(newGrid)
+
+    def random_grid(self, size):
+        self.menu.display_label('Win', unPack=True)
+        self.board.grid = App.generate_grid(size)
+        self.board.update_grid()
+
+    def default_grid(self, size):
+        self.menu.display_label('Win', unPack=True)
+        self.board.grid = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+        self.board.update_grid()
+
+    def win(self):
+        self.menu.display_label('Win')
 
     def buid(self):
+        self.menu.build()
         self.board.build()
         self.root.resizable(0, 0)
         self.root.title(self.name)
@@ -189,5 +278,6 @@ if __name__ == '__main__':
     os.system("cls")
 
     lapinTaquin = App()
+    print(App.register)
     lapinTaquin.buid()
     lapinTaquin.run()
