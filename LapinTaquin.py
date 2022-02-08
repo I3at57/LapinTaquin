@@ -150,11 +150,10 @@ class Grid:
             self.switch_two_tile(tilePosition, zeroPosition)
             self.build_one_tile(id, self.find_position_from_id(id))
 
-        if self.grid == [[1, 2, 3], [4, 5, 6], [7, 8, 0]]:
+        if self.grid == App.generate_default_grid(self.size):
             App.register[self.appId].win()
 
     def update_grid(self):
-        print(self.grid)
         for row in self.grid:
             for id in row:
                 self.remove_one_tile(id)
@@ -190,18 +189,28 @@ class Menu:
             background=FRAME_MENU_BG_COLOR,
             relief='ridge', borderwidth=FRAME_BORDER_WIDTH
         )
+        self.dictStringVar = {
+            'Edit': StringVar(),
+        }
+        self.dictStringVar['Edit'].set('Edit')
         self.dictButton = {
             'Random': Button(
                 self.frame, text='Random', font=self.font,
                 command=lambda: [App.register[self.appId].random_grid(3)]
             ),
-            'Edit': Button(
-                self.frame, text='Edit', font=self.font,
+            'Edit': OptionMenu(
+                self.frame, self.dictStringVar['Edit'], *['2', '3', '4'],
                 # command=lambda: [new_grid()]
             ),
             'Default': Button(
                 self.frame, text='Default', font=self.font,
                 command=lambda: [App.register[self.appId].default_grid(3)]
+            ),
+            'Test': Button(
+                self.frame, text='Test', font=self.font,
+                command=lambda: [
+                    App.register[self.appId].generate_default_grid(3)
+                ]
             )
         }
         self.dictLabel = {
@@ -211,7 +220,6 @@ class Menu:
         }
 
     def display_label(self, label: str, unPack=False):
-        print(label)
         if unPack:
             self.dictLabel[label].pack_forget()
         else:
@@ -238,10 +246,10 @@ class App:
 
     @staticmethod
     def generate_grid(size):
-        pool = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+        pool = [i for i in range(size*size)]
         newGrid = []
 
-        for row in range(size):
+        for i in range(size):
             line = []
             for j in range(size):
                 n = choice(pool)
@@ -251,6 +259,24 @@ class App:
 
         return(newGrid)
 
+    @staticmethod
+    def generate_default_grid(size):
+        pool = [i for i in range(size*size)]
+        defaultGrid = []
+
+        for i in range(size):
+            line = []
+            for j in range(size):
+                if len(pool) == 1:
+                    n = pool[0]
+                else:
+                    n = pool[1]
+                line.append(n)
+                pool.remove(n)
+            defaultGrid.append(line)
+
+        return(defaultGrid)
+
     def random_grid(self, size):
         self.menu.display_label('Win', unPack=True)
         self.board.grid = App.generate_grid(size)
@@ -258,7 +284,8 @@ class App:
 
     def default_grid(self, size):
         self.menu.display_label('Win', unPack=True)
-        self.board.grid = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
+        self.board.grid = App.generate_default_grid(size)
+        print(self.board.grid)
         self.board.update_grid()
 
     def win(self):
