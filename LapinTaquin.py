@@ -174,61 +174,40 @@ class Grid:
                     ].build(i, j)
 
 
-class Menu:
+class Display:
 
-    def __init__(self, appId: int):
+    def __init__(self, appId):
         self.appId = appId
-        self.font = tkinter.font.Font(
-            family='Helvetica',
-            size=12,
-            weight='bold',
-            slant='italic'
-        )
         self.frame = Frame(
             App.register[self.appId].root,
-            background=FRAME_MENU_BG_COLOR,
-            relief='ridge', borderwidth=FRAME_BORDER_WIDTH
+            background=FRAME_TILE_BG_COLOR,
         )
-        self.dictStringVar = {
-            'Edit': StringVar(),
-        }
-        self.dictStringVar['Edit'].set('Edit')
-        self.dictButton = {
-            'Random': Button(
-                self.frame, text='Random', font=self.font,
-                command=lambda: [App.register[self.appId].random_grid(3)]
-            ),
-            'Edit': OptionMenu(
-                self.frame, self.dictStringVar['Edit'], *['2', '3', '4'],
-                # command=lambda: [new_grid()]
-            ),
-            'Default': Button(
-                self.frame, text='Default', font=self.font,
-                command=lambda: [App.register[self.appId].default_grid(3)]
-            ),
-            'Test': Button(
-                self.frame, text='Test', font=self.font,
-                command=lambda: [
-                    App.register[self.appId].generate_default_grid(3)
-                ]
-            )
-        }
+        self.font = tkinter.font.Font(
+            family='Helvetica',
+            size=20,
+            weight='bold',
+            slant='italic',
+        )
         self.dictLabel = {
+            'Default': Label(
+                self.frame, text="Lapin Taquin", font=self.font,
+                bg=FRAME_TILE_BG_COLOR, fg=DISPLAY_MESSAGE_COLOR
+            ),
             'Win': Label(
-                self.frame, text="Congratulation: You win !", font=self.font
+                self.frame, text="You Win !", font=self.font,
+                bg=FRAME_TILE_BG_COLOR, fg=DISPLAY_MESSAGE_COLOR
             )
         }
+        self.currentLabel = 'Default'
 
-    def display_label(self, label: str, unPack=False):
-        if unPack:
-            self.dictLabel[label].pack_forget()
-        else:
-            self.dictLabel[label].pack(side='right')
+    def change_label(self, label):
+        self.dictLabel[self.currentLabel].pack_forget()
+        self.dictLabel[label].pack()
+        self.currentLabel = label
 
     def build(self):
         self.frame.pack(side='top', fill='both')
-        for button in self.dictButton.values():
-            button.pack(side='left')
+        self.dictLabel['Default'].pack()
 
 
 class App:
@@ -241,8 +220,31 @@ class App:
         print(App.register[0])
         print(f"App Id: {self.appId}")
         self.root = Tk()
-        self.board = Grid(self.appId, 3)
-        self.menu = Menu(self.appId)
+        self.board = Grid(self.appId, 5)
+        self.display = Display(self.appId)
+
+        # Crée le menu
+        self.menu = Menu(self.root)     # Menu widget
+        file = Menu(self.menu, tearoff=0)   # Sub Menu File
+        self.menu.add_cascade(label="File", menu=file)
+        edit = Menu(self.menu, tearoff=0)   # Sub Menu Edit
+        self.menu.add_cascade(label="Edit", menu=edit)
+        dev = Menu(self.menu, tearoff=0)    # Sub Menu Edit
+        self.menu.add_cascade(label="Dev", menu=dev)
+
+        # Sous menu File
+        file.add_command(label="Quit", command=self.root.destroy)
+        # Sous menu edit
+        edit.add_command(
+            label="Default", command=lambda: [self.default_grid(5)]
+        )
+        edit.add_command(
+            label="Random", command=lambda: [self.random_grid(5)]
+        )
+        # Sous menu Dev
+        dev.add_command(
+            label="Test", command=lambda: [App.generate_default_grid(5)]
+        )
 
     @staticmethod
     def generate_grid(size):
@@ -278,22 +280,24 @@ class App:
         return(defaultGrid)
 
     def random_grid(self, size):
-        self.menu.display_label('Win', unPack=True)
+        self.display.change_label('Default')
         self.board.grid = App.generate_grid(size)
+        print(self.board.grid)
         self.board.update_grid()
 
     def default_grid(self, size):
-        self.menu.display_label('Win', unPack=True)
+        self.display.change_label('Default')
         self.board.grid = App.generate_default_grid(size)
         print(self.board.grid)
         self.board.update_grid()
 
     def win(self):
-        self.menu.display_label('Win')
+        self.display.change_label('Win')
 
     def buid(self):
-        self.menu.build()
         self.board.build()
+        self.display.build()
+        self.root.config(menu=self.menu)
         self.root.resizable(0, 0)
         self.root.title(self.name)
 

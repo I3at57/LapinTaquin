@@ -8,6 +8,7 @@ This file contain all constant of the project
 FRAME_BORDER_WIDTH = 5
 FRAME_MENU_BG_COLOR = 'white'
 FRAME_TILE_BG_COLOR = '#006622'
+DISPLAY_MESSAGE_COLOR = 'white'
 
 # tile constant
 TILE_BG_COLOR = '#ffe6e6'
